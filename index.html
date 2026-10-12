@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>디저트 취향 스무고개</title>
+<style>
+  :root{
+    --bg:#fbf6ee; --card:#fff; --ink:#3b2a20; --muted:#8a7766; --line:#eadfce;
+    --accent:#d9531e; --accent-dark:#b13f12; --land:#eadfce; --sea:#f4ede0;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;line-height:1.5}
+  main{max-width:880px;margin:0 auto;padding:24px 16px 56px}
+  h1{font-size:1.5rem;margin:0 0 4px}
+  h2{font-size:1.1rem;margin:0 0 12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px}
+  .center{text-align:center}
+  .muted{color:var(--muted);font-size:.9rem}
+  .big-emoji{font-size:3.5rem;line-height:1.2}
+  button{font:inherit;cursor:pointer;border:0;border-radius:12px;padding:14px 22px;font-weight:700;
+    transition:transform .08s, background .15s}
+  button:active{transform:scale(.97)}
+  button:focus-visible{outline:3px solid #f0a37f;outline-offset:2px}
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-primary:hover{background:var(--accent-dark)}
+  .btn-ghost{background:#f3ebdd;color:var(--ink)}
+  .btn-ghost:hover{background:#eadfc9}
+  #player-name{width:100%;max-width:320px;font:inherit;padding:12px 14px;margin-top:6px;border:2px solid var(--line);
+    border-radius:12px;text-align:center;background:#fffdf9;color:var(--ink)}
+  #player-name:focus{outline:none;border-color:var(--accent)}
+  .answers{display:flex;gap:12px;margin-top:20px}
+  .answers button{flex:1;font-size:1.1rem}
+  .btn-yes{background:#2f8f5b;color:#fff}.btn-yes:hover{background:#25774b}
+  .btn-no{background:#c8453d;color:#fff}.btn-no:hover{background:#a93832}
+  .progress{height:8px;background:#f1e8d8;border-radius:99px;overflow:hidden;margin:8px 0 20px}
+  .progress i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
+  .question{font-size:1.4rem;font-weight:700;min-height:3.6em;display:flex;align-items:center;justify-content:center}
+  .top3{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+  .dessert{border:1px solid var(--line);border-radius:14px;padding:14px;background:#fffdf9}
+  .dessert.first{border-color:var(--accent);box-shadow:0 0 0 2px #f7d5c3}
+  .dessert .em{font-size:2.2rem}
+  .tag{display:inline-block;font-size:.75rem;background:#f3ebdd;border-radius:99px;padding:2px 10px;margin-top:4px}
+  .badge{float:right;font-weight:800;color:var(--accent)}
+  .charts{display:grid;grid-template-columns:1fr;gap:16px}
+  @media(min-width:760px){.charts.two{grid-template-columns:1fr 1fr}}
+  .map-wrap{position:relative}
+  svg{width:100%;height:auto;display:block}
+  .bar-row{display:grid;grid-template-columns:110px 1fr 44px;align-items:center;gap:8px;margin:8px 0;font-size:.92rem}
+  .bar{height:14px;background:#f1e8d8;border-radius:99px;overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--accent);border-radius:99px}
+  #tip{position:fixed;pointer-events:none;background:#3b2a20;color:#fff;padding:8px 12px;border-radius:10px;
+    font-size:.82rem;max-width:240px;opacity:0;transition:opacity .1s;z-index:10}
+  .legend{display:flex;align-items:center;gap:8px;font-size:.8rem;color:var(--muted);margin-top:6px}
+  .legend i{display:block;width:120px;height:10px;border-radius:99px;background:linear-gradient(90deg,#fbe3d3,#d9531e,#7a2a0a)}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+  <header class="center" style="margin-bottom:16px">
+    <h1>🍰 디저트 취향 스무고개</h1>
+    <div class="muted">YES / NO로 답하면 나의 디저트 취향을 세계지도 위에 그려드려요</div>
+  </header>
+
+  <!-- 시작 -->
+  <section id="screen-start" class="card center">
+    <div class="big-emoji">🍮🍡🍫</div>
+    <h2>준비됐나요?</h2>
+    <p class="muted">최대 20개의 질문으로 당신에게 맞는 디저트와<br>어느 나라 디저트 계보와 가장 닮았는지 알려드려요.</p>
+    <label for="player-name" style="display:block;font-weight:700;margin-top:12px">이름 (닉네임도 좋아요)</label>
+    <input id="player-name" maxlength="20" autocomplete="off" placeholder="예: 해피햄">
+    <div id="name-hint" style="color:#c8453d;font-size:.85rem;margin-top:4px" hidden>시작하려면 이름을 입력해 주세요.</div>
+    <p class="muted" style="margin:8px 0 12px;font-size:.8rem">입력한 이름과 응답 내용은 서비스 개선을 위한 기록으로 저장돼요.</p>
+    <button class="btn-primary" id="btn-start">시작하기</button>
+  </section>
+
+  <!-- 질문 -->
+  <section id="screen-quiz" class="card center" hidden>
+    <div class="muted" id="q-count" aria-live="polite">질문 1 / 20</div>
+    <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="20"><i id="q-bar"></i></div>
+    <div class="question" id="q-text"></div>
+    <div class="answers">
+      <button class="btn-yes" id="btn-yes">YES</button>
+      <button class="btn-no" id="btn-no">NO</button>
+    </div>
+    <div class="muted" style="margin-top:12px">키보드: Y / N</div>
+    <button class="btn-ghost" id="btn-quit" style="margin-top:12px;padding:8px 16px">처음으로</button>
+  </section>
+
+  <!-- 결과 -->
+  <section id="screen-result" hidden>
+    <div class="card">
+      <h2 id="r-headline"></h2>
+      <div class="top3" id="r-top3"></div>
+    </div>
+
+    <div class="card">
+      <h2>🗺️ 나의 디저트 취향 지도</h2>
+      <div class="muted" style="margin-bottom:8px">색이 진하고 동심원이 클수록 해당 지역 디저트 계보와 취향이 잘 맞아요. 핀에 마우스를 올려 보세요.</div>
+      <div class="map-wrap"><svg id="map" viewBox="0 0 1000 440" role="img" aria-label="세계지도 위 지역별 디저트 취향 일치도"></svg></div>
+      <div class="legend"><span>낮음</span><i></i><span>높음</span><span style="margin-left:auto">단순화한 지도</span></div>
+    </div>
+
+    <div class="charts two">
+      <div class="card"><h2>🕸️ 취향 레이더</h2><svg id="radar" viewBox="0 0 360 320" role="img" aria-label="취향 레이더 차트"></svg></div>
+      <div class="card"><h2>🏆 계보 일치도 Top 5</h2><div id="bars"></div></div>
+    </div>
+
+    <div class="center"><button class="btn-primary" id="btn-restart">다시 하기</button></div>
+  </section>
+</main>
+<div id="tip"></div>
+
+<script>
+// ---------- 데이터 ----------
+const REGIONS = {
+  FR:{name:'프랑스',    style:'클래식 파티스리 (르 꼬르동 블루 계열)', lon:2.3,  lat:46.5, lab:[-12,-26,'end']},
+  JP:{name:'일본',      style:'와가시 · 말차',                         lon:138,  lat:36,   lab:[14,10,'start']},
+  IT:{name:'이탈리아',  style:'젤라또 · 돌체',                         lon:12.5, lat:42,   lab:[4,30,'middle']},
+  US:{name:'미국',      style:'아메리칸 베이크드 스위츠',              lon:-98,  lat:39,   lab:[0,30,'middle']},
+  KR:{name:'한국',      style:'전통 간식 · 빙수',                      lon:127.8,lat:36.5, lab:[-14,-14,'end']},
+  TR:{name:'튀르키예',  style:'시럽 페이스트리',                       lon:35,   lat:39,   lab:[24,14,'start']},
+  AT:{name:'오스트리아',style:'빈 카페 전통',                          lon:14.5, lat:47.5, lab:[22,-28,'start']},
+  ES:{name:'스페인',    style:'튀김 · 크림 디저트',                    lon:-3.7, lat:40.4, lab:[-18,26,'end']},
+  IN:{name:'인도',      style:'밀크 · 시럽 스위츠',                    lon:78,   lat:22,   lab:[0,30,'middle']}
+};
+
+const D = [
+  {id:'macaron', name:'마카롱', em:'🍪', o:'FR', sweet:3, f:['crispy','chewy','nut','baked','small'], desc:'아몬드 머랭 사이에 크림을 채운 파리의 대표 디저트'},
+  {id:'brulee',  name:'크렘 브륄레', em:'🍮', o:'FR', sweet:2, f:['cold','creamy','crispy'], desc:'캐러멜 층을 톡 깨면 부드러운 커스터드가 나오는 디저트'},
+  {id:'eclair',  name:'에클레르', em:'🥐', o:'FR', sweet:3, f:['creamy','soft','chocolate','baked'], desc:'슈 반죽 안에 크림을 채우고 초콜릿을 입힌 페이스트리'},
+  {id:'mille',   name:'밀푀유', em:'🥧', o:'FR', sweet:2, f:['crispy','creamy','fruit','baked'], desc:'겹겹의 바삭한 파이 사이에 크림과 과일을 층층이 쌓은 디저트'},
+  {id:'daifuku', name:'모찌 다이후쿠', em:'🍡', o:'JP', sweet:2, f:['chewy','bean','small'], desc:'쫀득한 찹쌀떡 속에 달콤한 팥소가 들어 있어요'},
+  {id:'parfait', name:'말차 파르페', em:'🍨', o:'JP', sweet:2, f:['cold','creamy','bitter','bean','fruit'], desc:'쌉싸름한 말차와 크림, 팥이 어우러진 파르페'},
+  {id:'dorayaki',name:'도라야키', em:'🥞', o:'JP', sweet:2, f:['soft','bean','baked','small'], desc:'폭신한 팬케이크 사이에 팥앙금을 넣은 간식'},
+  {id:'tiramisu',name:'티라미수', em:'☕', o:'IT', sweet:2, f:['cold','creamy','soft','bitter','cheese'], desc:'커피에 적신 시트와 마스카르포네 크림의 조합'},
+  {id:'gelato',  name:'젤라또', em:'🍦', o:'IT', sweet:2, f:['cold','creamy','fruit'], desc:'밀도 높고 쫀쫀한 이탈리아식 아이스크림'},
+  {id:'panna',   name:'판나코타', em:'🍮', o:'IT', sweet:2, f:['cold','creamy','soft','fruit'], desc:'생크림을 젤라틴으로 굳혀 과일 소스를 곁들인 푸딩'},
+  {id:'brownie', name:'브라우니', em:'🍫', o:'US', sweet:3, f:['soft','chocolate','baked','rich','nut'], desc:'진한 초콜릿과 견과류가 가득한 묵직한 구움 과자'},
+  {id:'cheesecake',name:'뉴욕 치즈케이크', em:'🍰', o:'US', sweet:2, f:['cold','creamy','cheese','baked','rich'], desc:'크림치즈로 꽉 채운 꾸덕하고 진한 케이크'},
+  {id:'applepie',name:'애플파이', em:'🥧', o:'US', sweet:2, f:['warm','crispy','fruit','baked'], desc:'따뜻한 사과 필링과 바삭한 파이 크러스트'},
+  {id:'bingsu',  name:'팥빙수', em:'🍧', o:'KR', sweet:2, f:['cold','bean','fruit','chewy'], desc:'곱게 간 얼음 위에 팥과 떡, 과일을 올린 여름 디저트'},
+  {id:'hotteok', name:'호떡', em:'🥞', o:'KR', sweet:3, f:['warm','chewy','nut','fried'], desc:'흑설탕과 견과류 소가 녹아 흐르는 쫄깃한 길거리 간식'},
+  {id:'yakgwa',  name:'약과', em:'🍯', o:'KR', sweet:3, f:['chewy','nut','fried','rich','small'], desc:'꿀과 생강의 풍미가 밴 한국 전통 과자'},
+  {id:'baklava', name:'바클라바', em:'🥮', o:'TR', sweet:3, f:['crispy','nut','baked','rich'], desc:'얇은 필로 반죽 사이에 견과류를 넣고 시럽을 적신 페이스트리'},
+  {id:'sacher',  name:'자허토르테', em:'🎂', o:'AT', sweet:3, f:['soft','chocolate','fruit','baked','rich'], desc:'살구잼을 바른 진한 초콜릿 케이크, 빈의 명물'},
+  {id:'churros', name:'츄러스', em:'🥨', o:'ES', sweet:2, f:['warm','crispy','chocolate','fried'], desc:'바삭하게 튀겨 초콜릿에 찍어 먹는 간식'},
+  {id:'gulab',   name:'굴랍 자문', em:'🍩', o:'IN', sweet:3, f:['warm','soft','nut','fried','rich'], desc:'우유 반죽을 튀겨 장미 시럽에 담근 인도 디저트'}
+];
+
+const has = (d,t)=>d.f.includes(t);
+const Q = [
+  {v:['차갑게 먹는 디저트가 끌리나요?','더운 여름날, 시원하게 식힌 디저트가 먼저 떠오르나요?','디저트는 차가울수록 맛있다고 생각하나요?'], test:d=>has(d,'cold')},
+  {v:['따끈따끈하게 먹는 디저트를 좋아하나요?','쌀쌀한 날, 따뜻한 디저트로 몸을 녹이고 싶나요?','갓 만들어 김이 나는 디저트에 마음이 가나요?'], test:d=>has(d,'warm')},
+  {v:['입에서 사르르 녹는 크리미한 식감을 좋아하나요?','숟가락으로 떠먹는 부드러운 크림 디저트가 좋나요?','입안에서 스르르 녹아내리는 느낌을 즐기나요?'], test:d=>has(d,'creamy')},
+  {v:['바삭바삭한 식감을 좋아하나요?','한입 베어 물 때 "바삭" 소리가 나야 제맛인가요?','겹겹이 부서지는 파삭한 식감에 끌리나요?'], test:d=>has(d,'crispy')},
+  {v:['쫀득쫀득 씹는 맛을 좋아하나요?','오래 씹을수록 맛이 나는 쫄깃한 디저트가 좋나요?','찰기 있는 떡 같은 식감에 끌리나요?'], test:d=>has(d,'chewy')},
+  {v:['초콜릿 맛을 좋아하나요?','힘든 하루 끝엔 초콜릿이 최고의 보상인가요?','디저트 하면 초콜릿이 가장 먼저 떠오르나요?'], test:d=>has(d,'chocolate')},
+  {v:['과일의 상큼함이 들어간 디저트가 좋나요?','디저트에 과일 향이나 새콤한 맛이 더해지면 더 끌리나요?','느끼함을 잡아 주는 상큼한 맛이 꼭 있었으면 하나요?'], test:d=>has(d,'fruit')},
+  {v:['말차나 커피처럼 쌉싸름한 맛도 좋아하나요?','디저트와 함께 아메리카노나 녹차를 곁들이는 걸 즐기나요?','달콤함 뒤에 은은한 쓴맛이 남는 디저트에 끌리나요?'], test:d=>has(d,'bitter')},
+  {v:['견과류나 꿀의 고소하고 진한 맛을 좋아하나요?','아몬드, 호두 같은 견과류가 들어간 디저트가 좋나요?','꿀이나 조청처럼 깊고 고소한 단맛이 끌리나요?'], test:d=>has(d,'nut')},
+  {v:['팥이나 콩의 은은한 단맛도 괜찮나요?','단팥이나 콩가루가 들어간 디저트도 거부감 없이 먹나요?','자극적이지 않은 곡물의 구수한 단맛이 좋나요?'], test:d=>has(d,'bean')},
+  {v:['치즈나 크림치즈 풍미를 좋아하나요?','꾸덕한 치즈 풍미의 디저트를 좋아하나요?','달콤함에 살짝 짭짤하고 진한 치즈 맛이 더해지면 좋나요?'], test:d=>has(d,'cheese')},
+  {v:['입이 찡할 만큼 아주 달콤한 게 좋나요?','디저트는 확실하게 달아야 먹은 기분이 드나요?','단 음식은 아주 달수록 좋다고 생각하나요?'], test:d=>d.sweet===3},
+  {v:['오븐에 구운 디저트를 좋아하나요?','고소한 빵이나 케이크처럼 구워서 만든 디저트가 좋나요?','갓 구운 베이킹 냄새가 나는 디저트에 끌리나요?'], test:d=>has(d,'baked')},
+  {v:['튀기거나 팬에 지져 만든 디저트를 좋아하나요?','기름에 튀기거나 구운 길거리 간식 같은 디저트가 좋나요?','겉은 노릇하고 속은 촉촉한 지짐·튀김 디저트에 끌리나요?'], test:d=>has(d,'fried')},
+  {v:['묵직하고 진한 디저트를 선호하나요?','한 조각만 먹어도 배부른 묵직한 디저트가 좋나요?','가볍기보다 농후하고 꽉 찬 맛이 좋나요?'], test:d=>has(d,'rich')},
+  {v:['한입에 쏙 들어가는 작은 디저트가 좋나요?','여러 가지를 조금씩 맛보는 작은 사이즈가 좋나요?','손으로 집어 한입에 먹는 앙증맞은 디저트가 끌리나요?'], test:d=>has(d,'small')},
+  {v:['폭신하고 부드러운 식감을 좋아하나요?','포크가 스르르 들어가는 촉촉하고 폭신한 식감이 좋나요?','구름처럼 부드럽고 말랑한 식감에 끌리나요?'], test:d=>has(d,'soft')}
+];
+let rng = Math.random;
+const MAX_Q = 20;
+
+// ---------- 상태 ----------
+let score, asked, current, player = '', sessionId = '';
+const $ = id => document.getElementById(id);
+const show = name => ['start','quiz','result'].forEach(s => $('screen-'+s).hidden = (s!==name));
+
+// ---------- 로그 ----------
+// Google Apps Script 웹앱 URL을 넣으면 Google Sheets에 응답이 쌓입니다 (설정 방법: .docs/LOGGING.md). 비어 있으면 브라우저에만 저장.
+const LOG_URL = '';
+
+function logEvent(type, extra = {}){
+  const rec = {type, time:new Date().toISOString(), session:sessionId, name:player, ...extra};
+  try{
+    const arr = JSON.parse(localStorage.getItem('dessert_log') || '[]');
+    arr.push(rec);
+    localStorage.setItem('dessert_log', JSON.stringify(arr.slice(-200)));
+  }catch(e){}
+  if(LOG_URL && typeof fetch === 'function'){
+    fetch(LOG_URL, {method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(rec), keepalive:true}).catch(()=>{});
+  }
+}
+
+function start(){
+  const name = $('player-name').value.trim().slice(0,20);
+  if(!name){ $('name-hint').hidden = false; $('player-name').focus(); return; }
+  $('name-hint').hidden = true;
+  player = name;
+  sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+  logEvent('start');
+  score = Object.fromEntries(D.map(d=>[d.id,0]));
+  asked = [];
+  next();
+  show('quiz');
+}
+
+function pickQuestion(){
+  const max = Math.max(...Object.values(score));
+  const cands = D.filter(d => score[d.id] >= max-2);
+  if(cands.length <= 1) return null;
+  // 후보를 잘 가를수록 뽑힐 확률이 높은 가중 랜덤 선택
+  const pool = [];
+  for(const q of Q){
+    if(asked.some(a=>a.q===q)) continue;
+    const m = cands.filter(q.test).length;
+    if(m===0 || m===cands.length) continue;
+    const diff = Math.abs(m/cands.length - .5);
+    pool.push({q, w:Math.exp(-diff*6)});
+  }
+  if(!pool.length) return null;
+  let r = rng() * pool.reduce((s,p)=>s+p.w,0);
+  for(const p of pool){ r -= p.w; if(r<=0) return p.q; }
+  return pool[pool.length-1].q;
+}
+
+function shouldStop(){
+  if(asked.length >= MAX_Q) return true;
+  const s = Object.values(score).sort((a,b)=>b-a);
+  return asked.length >= 6 && s[0]-s[1] >= 3;
+}
+
+function next(){
+  const q = (asked.length && shouldStop()) ? null : pickQuestion();
+  if(!q){ return showResult(); }
+  current = {q, test:q.test, text:q.v[Math.floor(rng()*q.v.length)]};
+  $('q-text').textContent = current.text;
+  $('q-count').textContent = `질문 ${asked.length+1} / ${MAX_Q}`;
+  $('q-bar').style.width = (asked.length/MAX_Q*100)+'%';
+  document.querySelector('[role=progressbar]').setAttribute('aria-valuenow', asked.length);
+}
+
+function answer(yes){
+  if(!current) return;
+  for(const d of D) score[d.id] += (current.test(d)===yes) ? 1 : -1;
+  asked.push({q:current.q, yes, text:current.text});
+  current = null;
+  next();
+}
+
+// ---------- 결과 계산 ----------
+const affinity = d => (score[d.id] + asked.length) / (2*asked.length);
+const pct = v => Math.round(v*100);
+
+function regionScores(){
+  return Object.keys(REGIONS).map(k=>{
+    const items = D.filter(d=>d.o===k);
+    const best = items.reduce((a,b)=>affinity(a)>=affinity(b)?a:b);
+    return {key:k, ...REGIONS[k], aff:affinity(best), best, items};
+  });
+}
+
+function showResult(){
+  const ranked = [...D].sort((a,b)=>score[b.id]-score[a.id]);
+  const regs = regionScores().sort((a,b)=>b.aff-a.aff);
+  const topReg = regs[0];
+
+  $('r-headline').textContent =
+    `${player}님의 취향은 ${topReg.name} 디저트 계보(${topReg.style})에 가장 가까워요! 🎉`;
+
+  logEvent('complete', {
+    questions: asked.length,
+    top3: ranked.slice(0,3).map(d=>`${d.name} ${pct(affinity(d))}%`).join(' / '),
+    region: `${topReg.name} ${pct(topReg.aff)}%`,
+    answers: asked.map(a=>({q:a.text, a:a.yes?'YES':'NO'}))
+  });
+
+  $('r-top3').innerHTML = ranked.slice(0,3).map((d,i)=>`
+    <div class="dessert ${i===0?'first':''}">
+      <span class="badge">${pct(affinity(d))}%</span>
+      <div class="em">${d.em}</div>
+      <strong>${i+1}. ${d.name}</strong><br>
+      <span class="tag">${REGIONS[d.o].name}</span>
+      <p class="muted" style="margin:8px 0 0">${d.desc}</p>
+    </div>`).join('');
+
+  drawMap(regs);
+  drawRadar(ranked);
+  drawBars(regs);
+  show('result');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ---------- 세계지도 ----------
+const LAND = [
+  [[-168,66],[-140,70],[-95,72],[-80,68],[-62,58],[-55,50],[-66,44],[-76,35],[-81,25],[-97,26],[-105,20],[-95,16],[-85,10],[-78,8],[-90,14],[-105,23],[-117,32],[-125,42],[-125,49],[-135,58],[-150,60],[-165,60]],
+  [[-78,8],[-60,10],[-50,0],[-35,-6],[-40,-22],[-48,-28],[-58,-38],[-66,-46],[-70,-54],[-74,-48],[-72,-30],[-70,-18],[-80,-6],[-80,0]],
+  [[-10,36],[-9,43],[-2,48],[-5,50],[5,53],[8,57],[5,62],[15,69],[30,71],[60,70],[100,77],[140,72],[170,69],[180,66],[160,58],[142,52],[135,43],[128,35],[122,30],[120,22],[108,18],[105,9],[100,3],[98,12],[92,22],[80,14],[77,8],[72,20],[66,25],[57,25],[56,17],[43,13],[35,28],[35,36],[27,37],[22,36],[18,40],[12,44],[8,44],[3,43],[-1,37]],
+  [[-17,21],[-10,35],[10,37],[32,31],[35,28],[43,12],[51,12],[40,-3],[40,-15],[35,-25],[20,-35],[12,-17],[9,-1],[9,4],[-8,4],[-17,14]],
+  [[114,-22],[130,-12],[142,-11],[153,-26],[147,-38],[135,-34],[115,-34]],
+  [[-55,60],[-40,83],[-20,80],[-30,68],[-43,60]],
+  [[-5,50],[1,51],[0,58],[-5,58]],
+  [[130,31],[135,34],[140,36],[142,40],[140,43],[145,44],[141,45],[139,38],[131,34]]
+];
+const px = (lon,lat)=>[(lon+180)/360*1000, (80-lat)/140*440];   // 위도 80°N ~ 60°S
+const NS = 'http://www.w3.org/2000/svg';
+
+function drawMap(regs){
+  const hi = Math.max(...regs.map(r=>r.aff)), lo = Math.min(...regs.map(r=>r.aff));
+  const norm = v => hi===lo ? .5 : (v-lo)/(hi-lo);
+  const land = LAND.map(poly=>'<path d="M'+poly.map(([lo,la])=>px(lo,la).map(n=>n.toFixed(1)).join(',')).join('L')+'Z" fill="var(--land)" stroke="#d9c9b0" stroke-width="1"/>').join('');
+
+  const rings = regs.map(r=>{
+    const [x,y] = px(r.lon,r.lat), s = norm(r.aff), R = 14 + 56*s;
+    return [1,.66,.33].map((k,i)=>
+      `<circle cx="${x}" cy="${y}" r="${(R*k).toFixed(1)}" fill="#d9531e" fill-opacity="${(.10+.12*s)*(i+1)*.7}" stroke="#b13f12" stroke-opacity="${.25+.4*s}" stroke-width="1"/>`
+    ).join('');
+  }).join('');
+
+  const top = regs[0].key;
+  const pins = regs.map(r=>{
+    const [x,y] = px(r.lon,r.lat), [dx,dy,anchor] = r.lab, isTop = r.key===top;
+    return `<g class="pin" data-k="${r.key}" tabindex="0" style="cursor:pointer">
+      <line x1="${x}" y1="${y}" x2="${x+dx}" y2="${y+dy-4}" stroke="#8a7766" stroke-width=".8"/>
+      <circle cx="${x}" cy="${y}" r="${isTop?7:4.5}" fill="${isTop?'#7a2a0a':'#3b2a20'}" stroke="#fff" stroke-width="2"/>
+      <text x="${x+dx}" y="${y+dy}" text-anchor="${anchor}" font-size="${isTop?15:12.5}" font-weight="${isTop?800:600}"
+        fill="#3b2a20" stroke="#fffdf9" stroke-width="4" paint-order="stroke">${isTop?'📍 ':''}${r.name} ${pct(r.aff)}%</text>
+    </g>`;
+  }).join('');
+
+  $('map').innerHTML = `<rect width="1000" height="440" fill="var(--sea)" rx="12"/>${land}<g style="mix-blend-mode:multiply">${rings}</g>${pins}`;
+
+  const tip = $('tip');
+  $('map').querySelectorAll('.pin').forEach(g=>{
+    const r = regs.find(x=>x.key===g.dataset.k);
+    const html = `<strong>${r.name}</strong> · ${r.style}<br>` +
+      r.items.sort((a,b)=>affinity(b)-affinity(a)).map(d=>`${d.em} ${d.name} ${pct(affinity(d))}%`).join('<br>');
+    const move = e=>{ tip.style.left=Math.min(e.clientX+14,innerWidth-250)+'px'; tip.style.top=(e.clientY+14)+'px'; };
+    g.addEventListener('mouseenter',e=>{tip.innerHTML=html;tip.style.opacity=1;move(e)});
+    g.addEventListener('mousemove',move);
+    g.addEventListener('mouseleave',()=>tip.style.opacity=0);
+    g.addEventListener('focus',()=>{const b=g.getBoundingClientRect();tip.innerHTML=html;tip.style.opacity=1;tip.style.left=b.left+'px';tip.style.top=(b.bottom+8)+'px'});
+    g.addEventListener('blur',()=>tip.style.opacity=0);
+  });
+}
+
+// ---------- 레이더 ----------
+const AXES = [
+  ['달콤함', d=>d.sweet/3],
+  ['크리미', d=>+has(d,'creamy')],
+  ['바삭함', d=>+has(d,'crispy')],
+  ['쫀득함', d=>+has(d,'chewy')],
+  ['초콜릿', d=>+has(d,'chocolate')],
+  ['상큼함', d=>+has(d,'fruit')],
+  ['고소함', d=>+has(d,'nut')],
+  ['차가움', d=>+has(d,'cold')]
+];
+
+function drawRadar(ranked){
+  const top = ranked.slice(0,3), w = top.map(d=>Math.max(affinity(d),.01)), wsum = w.reduce((a,b)=>a+b,0);
+  const vals = AXES.map(([,fn])=> top.reduce((s,d,i)=>s+fn(d)*w[i],0)/wsum);
+  const cx=180, cy=160, R=105, n=AXES.length;
+  const pt = (i,v)=>{const a=-Math.PI/2+i*2*Math.PI/n;return [cx+Math.cos(a)*R*v, cy+Math.sin(a)*R*v]};
+  const poly = f=>AXES.map((_,i)=>pt(i,f(i)).map(x=>x.toFixed(1)).join(',')).join(' ');
+  const grid = [.25,.5,.75,1].map(k=>`<polygon points="${poly(()=>k)}" fill="none" stroke="#eadfce"/>`).join('');
+  const spokes = AXES.map((_,i)=>{const [x,y]=pt(i,1);return `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#eadfce"/>`}).join('');
+  const labels = AXES.map(([name],i)=>{const [x,y]=pt(i,1.2);
+    return `<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle" font-size="13" fill="#3b2a20">${name}</text>`}).join('');
+  const dots = AXES.map((_,i)=>{const [x,y]=pt(i,vals[i]);return `<circle cx="${x}" cy="${y}" r="3.5" fill="#d9531e"/>`}).join('');
+  $('radar').innerHTML = grid+spokes+
+    `<polygon points="${poly(i=>vals[i])}" fill="#d9531e" fill-opacity=".3" stroke="#d9531e" stroke-width="2"/>`+dots+labels;
+}
+
+// ---------- 막대 ----------
+function drawBars(regs){
+  $('bars').innerHTML = regs.slice(0,5).map(r=>`
+    <div class="bar-row">
+      <span>${r.name}</span>
+      <div class="bar"><i style="width:${pct(r.aff)}%"></i></div>
+      <strong>${pct(r.aff)}%</strong>
+    </div>`).join('') +
+    `<div class="muted" style="margin-top:8px">1위: ${regs[0].style}</div>`;
+}
+
+// ---------- 이벤트 ----------
+$('btn-start').onclick = start;
+$('btn-restart').onclick = ()=>show('start');
+$('player-name').addEventListener('keydown', e=>{ if(e.key==='Enter') start(); });
+$('btn-yes').onclick = ()=>answer(true);
+$('btn-no').onclick = ()=>answer(false);
+$('btn-quit').onclick = ()=>show('start');
+document.addEventListener('keydown',e=>{
+  if($('screen-quiz').hidden) return;
+  const k = e.key.toLowerCase();
+  if(k==='y') answer(true); else if(k==='n') answer(false);
+});
+</script>
+</body>
+</html>
